@@ -1,4 +1,5 @@
 """Defines a SmartThings device."""
+import logging
 from collections import defaultdict, namedtuple
 import colorsys
 import re
@@ -18,6 +19,7 @@ COLOR_HEX_MATCHER = re.compile("^#[A-Fa-f0-9]{6}$")
 Status = namedtuple("status", "value unit data")
 STATUS_NONE = Status(None, None, None)
 
+_LOGGER = logging.getLogger(__package__)
 
 def hs_to_hex(hue: float, saturation: float) -> str:
     """Convert hue and saturation to a string hex color."""
@@ -839,9 +841,16 @@ class DeviceEntity(Entity, Device):
 
     async def command(self, component_id: str, capability, command, args=None) -> bool:
         """Execute a command on the device."""
+        _LOGGER.debug(
+            "Executing command %s on %s with arguments %s",
+            command,
+            self._device_id,
+            args,
+        )
         response = await self._api.post_device_command(
             self._device_id, component_id, capability, command, args
         )
+        _LOGGER.debug("Response: %s", response)
         try:
             return response["results"][0]["status"] in ("ACCEPTED", "COMPLETED")
         except (KeyError, IndexError):
